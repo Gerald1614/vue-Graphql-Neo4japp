@@ -7,7 +7,8 @@ const getUserId = (req, requireAuth = true) => {
     const token = header.replace('Bearer ', '')
     try {
       const decoded = jwt.verify(token, 'thisisasecret')
-      return decoded._Id
+      console.log(decoded)
+      return decoded.id
     } catch(err) {
       throw new Error('invalid token')
     }

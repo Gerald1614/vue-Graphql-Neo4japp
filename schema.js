@@ -1,12 +1,13 @@
 import { neo4jgraphql } from 'neo4j-graphql-js'
  import gql from 'apollo-server'
- import uuidv4 from 'uuid/v4'
  import bcrypt from 'bcryptjs'
  import jwt from 'jsonwebtoken'
+ import uuidv4 from 'uuid/v4'
+ import getUserId from './utils/getUserId'
 
 export const typeDefs = `
 type User {
-  _id: ID!
+  id: ID!
   userName: String! @unique
   email: String! @unique
   password: String!
@@ -16,7 +17,7 @@ type User {
   posts: [Post] @relation(name: "POSTED", direction: "OUT")
 }
 type Post {
-  _id: ID!
+  id: ID!
   title: String!
   imageUrl: String!
   categories: [String]!
@@ -27,7 +28,7 @@ type Post {
   messages: [Message]
 }
 type Message {
-  _id: ID!
+  id: ID!
   messageBody: String!
   messageDate: String
   messageUser: User!
@@ -36,10 +37,11 @@ type Query {
   AllPosts: [Post],
   AllUsers: [User]
 }
+
 type Mutation {
-  CreatePost(data: CreatePostInput!): Post!
-  CreateUser(data: CreateUserInput!): User!
-  login(data: loginUserInput): User!
+  CreatePost(data: CreatePostInput!): Post
+  CreateUser(data: CreateUserInput!): User
+  LoginUser(data: loginUserInput!): User
 }
 input loginUserInput {
   email: String!
@@ -67,13 +69,35 @@ input CreateUserInput {
     }
    },
    Mutation: {
-     CreatePost(object, params, ctx, resolveInfo) {
+     async CreatePost(object, params, ctx, resolveInfo) {
+      const userId = await getUserId(ctx.req)
        const post = {
          ...params.data,
+         id: uuidv4(),
          createdAt : new Date().toString(),
-         _id: uuidv4()
        }
-       return neo4jgraphql(object,post, ctx, resolveInfo)
+       neo4jgraphql(object, post, ctx, resolveInfo)
+       .then((post) => {
+
+        var session = ctx.driver.session()
+        session.run(
+          'MATCH (user:User) WHERE user.id = $idUser ' +
+          'MATCH (post:Post) WHERE post.id = $idPost ' + 
+          'MERGE (user)-[r:POSTED]->(post) ' +
+          'RETURN r',
+           {'idUser': userId, 'idPost': post.id} )
+           .subscribe({
+            onNext: function (record) {
+              return record.get('r')
+            },
+            onCompleted: function () {
+              session.close();
+            },
+            onError: function (error) {
+              console.log(error);
+            }
+          })
+      })
      },
      async CreateUser(object, params, ctx, resolveInfo) {
        if (params.data.password.length <4) {
@@ -83,26 +107,36 @@ input CreateUserInput {
       
       const newUser = {
         ...params.data,
+        id: uuidv4(),
         password: password,
-        _id : uuidv4()
       }
-      console.log(jwt.sign({_id: newUser._id}, 'thisisasecret')) 
+      console.log(jwt.sign({id: newUser.id}, 'thisisasecret')) 
       return neo4jgraphql(object, newUser, ctx, resolveInfo)
       
 
     },
-    async login(object, params, ctx, resolveInfo) {
+     LoginUser(object, params, ctx, resolveInfo) {
       var session = ctx.driver.session()
-      session.run('MATCH(user:User {email: {nameParam} }) RETURN user.email as email', {nameParam: params.data.email})
+      session.run('MATCH(user:User {email: $nameParam }) RETURN user as user', {nameParam: params.data.email})
       .subscribe({
-        onNext: function (record) {
-          console.log(record.get('email'));
+        onNext: function async (record) {
+          let user = record.get('user');
+          bcrypt.compare(params.data.password, user.properties.password)
+          .then((isMatch) =>{
+            if (!isMatch) {
+              throw new Error('Unable to login')
+            }
+            console.log(jwt.sign({id: user.properties.id}, 'thisisasecret'))
+            return  object
+          })
+          
+
         },
         onCompleted: function () {
           session.close();
         },
         onError: function (error) {
-          console.log(error);
+          throw new Error('Unable to login');
         }
       })
     }
