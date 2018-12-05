@@ -1,7 +1,7 @@
 import { neo4jgraphql } from 'neo4j-graphql-js'
  import gql from 'apollo-server'
  import bcrypt from 'bcryptjs'
- import {token} from './utils/auhentication'
+ import {token} from './utils/authentication'
  import uuidv4 from 'uuid/v4'
  import getUserId from './utils/getUserId'
 
@@ -92,6 +92,7 @@ input CreateUserInput {
           'MATCH (user:User) WHERE user.id = $idUser ' +
           'MATCH (post:Post) WHERE post.id = $idPost ' + 
           'MERGE (user)-[r:POSTED]->(post) ' +
+          'SET user.posts = user.posts + $idPost ' +
           'RETURN *',
            {'idUser': userId, 'idPost': post.id} )
         .then( (result) => {
