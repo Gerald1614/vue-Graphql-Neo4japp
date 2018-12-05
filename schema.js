@@ -1,7 +1,7 @@
 import { neo4jgraphql } from 'neo4j-graphql-js'
  import gql from 'apollo-server'
  import bcrypt from 'bcryptjs'
- import jwt from 'jsonwebtoken'
+ import {token} from './utils/auhentication'
  import uuidv4 from 'uuid/v4'
  import getUserId from './utils/getUserId'
 
@@ -24,7 +24,7 @@ type Post {
   description: String!
   createdAt: String
   likes: Int
-  author: User! @relation(name: "POSTED_BY", direction: "OUT")
+  author: User! @relation(name: "POSTED", direction: "IN")
   messages: [Message]
 }
 type Message {
@@ -41,7 +41,11 @@ type Query {
 type Mutation {
   CreatePost(data: CreatePostInput!): Post
   CreateUser(data: CreateUserInput!): User
-  LoginUser(data: loginUserInput!): User
+  LoginUser(data: loginUserInput!): AuthPayload
+}
+type AuthPayload {
+  token: String!
+  user: User!
 }
 input loginUserInput {
   email: String!
@@ -71,32 +75,29 @@ input CreateUserInput {
    Mutation: {
      async CreatePost(object, params, ctx, resolveInfo) {
       const userId = await getUserId(ctx.req)
-       const post = {
+       const newPost = {
          ...params.data,
          id: uuidv4(),
          createdAt : new Date().toString(),
+         imageUrl: "",
+          categories: [],
+          likes: null,
+          author: userId,
+          messages: []
        }
-       neo4jgraphql(object, post, ctx, resolveInfo)
-       .then((post) => {
-
-        var session = ctx.driver.session()
-        session.run(
+       return neo4jgraphql(object, newPost, ctx, resolveInfo)
+       .then( async (post) => {
+        var session = await ctx.driver.session()
+        return session.run(
           'MATCH (user:User) WHERE user.id = $idUser ' +
           'MATCH (post:Post) WHERE post.id = $idPost ' + 
           'MERGE (user)-[r:POSTED]->(post) ' +
-          'RETURN r',
+          'RETURN *',
            {'idUser': userId, 'idPost': post.id} )
-           .subscribe({
-            onNext: function (record) {
-              return record.get('r')
-            },
-            onCompleted: function () {
-              session.close();
-            },
-            onError: function (error) {
-              console.log(error);
-            }
-          })
+        .then( (result) => {
+        return result.records[0]._fields[0].properties
+        })
+        .catch((err) => console.log(err))
       })
      },
      async CreateUser(object, params, ctx, resolveInfo) {
@@ -104,43 +105,38 @@ input CreateUserInput {
          throw new Error('Password must be 4 characters or longer.')
        }
        const password = await bcrypt.hash(params.data.password, 10)
-      
-      const newUser = {
-        ...params.data,
-        id: uuidv4(),
-        password: password,
-      }
-      console.log(jwt.sign({id: newUser.id}, 'thisisasecret')) 
-      return neo4jgraphql(object, newUser, ctx, resolveInfo)
-      
-
-    },
-     LoginUser(object, params, ctx, resolveInfo) {
-      var session = ctx.driver.session()
-      session.run('MATCH(user:User {email: $nameParam }) RETURN user as user', {nameParam: params.data.email})
-      .subscribe({
-        onNext: function async (record) {
-          let user = record.get('user');
-          bcrypt.compare(params.data.password, user.properties.password)
-          .then((isMatch) =>{
-            if (!isMatch) {
-              throw new Error('Unable to login')
-            }
-            console.log(jwt.sign({id: user.properties.id}, 'thisisasecret'))
-            return  object
-          })
-          
-
-        },
-        onCompleted: function () {
-          session.close();
-        },
-        onError: function (error) {
-          throw new Error('Unable to login');
+        const user = {
+          ...params.data,
+          id: uuidv4(),
+          password: password,
+          avatar: "",
+          joinDate: new Date().toString(),
+          favorites: [],
+          posts: []
         }
-      })
-    }
+        console.log(token(user.id)) 
+        return neo4jgraphql(object, user, ctx, resolveInfo)
+    },
+     async LoginUser(object, params, ctx, resolveInfo) {
+      var session = await ctx.driver.session()
+      return session.run('MATCH(user:User {email: $nameParam }) RETURN user as user', {nameParam: params.data.email})
+      .then( async (result) => {
+        var user = result.records[0]._fields[0].properties
+        try {
+          const isMatch = await bcrypt.compare(params.data.password, user.password);
+          if (!isMatch) {
+            throw new Error('Unable to login');
+          }
+          console.log(token(user.id));
+          console.log(user);
+          return {user, token: token(user.id)};
+        }
+        catch (err) {
+          return console.log(err);
+        }
+    })
+    .catch((err) => console.log(err))
+
+     }
    }
  }
-
-
