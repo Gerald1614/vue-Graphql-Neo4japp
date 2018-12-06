@@ -14,11 +14,7 @@ const schema = makeExecutableSchema({
   }
 });
 const augmentedSchema = augmentSchema(schema);
-console.log(NEO4J_PWD)
 const driver = neo4j.driver(NEO4J_URI, neo4j.auth.basic(NEO4J_USER, NEO4J_PWD));
-
-
-
 
 const server = new ApolloServer({
   schema: augmentedSchema,

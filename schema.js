@@ -55,7 +55,7 @@ input CreatePostInput {
   title: String!
   description: String!
   imageUrl: String!
-  categories: String!
+  categories: [String]!
 }
 input CreateUserInput {
   userName: String!
@@ -75,31 +75,29 @@ input CreateUserInput {
    Mutation: {
      async CreatePost(object, params, ctx, resolveInfo) {
       const userId = await getUserId(ctx.req)
-       const newPost = {
-         ...params.data,
-         id: uuidv4(),
-         createdAt : new Date().toString(),
-         imageUrl: "",
-          categories: [],
+      console.log(params.data)
+        const newPost = {
+          ...params.data,
+          id: uuidv4(),
+          createdAt : new Date().toString(),
           likes: null,
           author: userId,
           messages: []
-       }
-       return neo4jgraphql(object, newPost, ctx, resolveInfo)
-       .then( async (post) => {
+        }
+
         var session = await ctx.driver.session()
         return session.run(
-          'MATCH (user:User) WHERE user.id = $idUser ' +
-          'MATCH (post:Post) WHERE post.id = $idPost ' + 
-          'MERGE (user)-[r:POSTED]->(post) ' +
-          'SET user.posts = user.posts + $idPost ' +
-          'RETURN *',
-           {'idUser': userId, 'idPost': post.id} )
+          'MATCH (user:User {id: $idUser}) ' +
+          'CREATE (post:Post $params) ' +
+          'CREATE (user)-[rel:POSTED]->(post) ' +
+          'SET user.posts = user.posts + post.id ' +
+          'RETURN post',
+            {'idUser': userId,
+            'params': newPost} )
         .then( (result) => {
-        return result.records[0]._fields[0].properties
-        })
+          return result.records[0]._fields[0].properties
+          })
         .catch((err) => console.log(err))
-      })
      },
      async CreateUser(object, params, ctx, resolveInfo) {
        if (params.data.password.length <4) {
@@ -117,6 +115,7 @@ input CreateUserInput {
         }
         console.log(token(user.id)) 
         return neo4jgraphql(object, user, ctx, resolveInfo)
+
     },
      async LoginUser(object, params, ctx, resolveInfo) {
       var session = await ctx.driver.session()
@@ -138,6 +137,20 @@ input CreateUserInput {
     })
     .catch((err) => console.log(err))
 
+     }
+   },
+   Post: {
+     author: async (object, params, ctx, resolveInfo) => {
+      const userId = await getUserId(ctx.req)
+      var author = await ctx.driver.session()
+      return author.run(
+        'MATCH (user:User {id: $idUser}) ' +
+        'RETURN user',
+          {'idUser': userId})
+      .then( (result) => {
+        return result.records[0]._fields[0].properties
+        })
+      .catch((err) => console.log(err))
      }
    }
  }

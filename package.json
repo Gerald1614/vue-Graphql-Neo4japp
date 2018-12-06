@@ -1,7 +1,7 @@
 {
   "name": "fullstack-vue-graphql-starter",
   "version": "1.0.0",
-  "description": "Starter for Full-Stack Vue-GraphQL-Apollo Projects",
+  "description": "Vue-GraphQL-Apollo-Neo4j Projects",
   "main": "server.js",
   "scripts": {
     "server": "nodemon --exec babel-node --presets env,stage-2  server.js",
