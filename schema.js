@@ -24,7 +24,7 @@ type Post {
   description: String!
   createdAt: String
   likes: Int
-  author: User! @relation(name: "POSTED", direction: "IN")
+  author: User @relation(name: "POSTED", direction: "IN")
   messages: [Message]
 }
 type Message {
@@ -139,18 +139,18 @@ input CreateUserInput {
 
      }
    },
-   Post: {
-     author: async (object, params, ctx, resolveInfo) => {
-      const userId = await getUserId(ctx.req)
-      var author = await ctx.driver.session()
-      return author.run(
-        'MATCH (user:User {id: $idUser}) ' +
-        'RETURN user',
-          {'idUser': userId})
-      .then( (result) => {
-        return result.records[0]._fields[0].properties
-        })
-      .catch((err) => console.log(err))
-     }
-   }
+  //  Post: {
+  //    author: async (object, params, ctx, resolveInfo) => {
+  //     const userId = await getUserId(ctx.req)
+  //     var author = await ctx.driver.session()
+  //     return author.run(
+  //       'MATCH (user:User {id: $idUser}) ' +
+  //       'RETURN user',
+  //         {'idUser': userId})
+  //     .then( (result) => {
+  //       return result.records[0]._fields[0].properties
+  //       })
+  //     .catch((err) => console.log(err))
+  //    }
+  //  }
  }
