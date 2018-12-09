@@ -4,6 +4,7 @@ import { neo4jgraphql } from 'neo4j-graphql-js'
  import {token} from './utils/authentication'
  import uuidv4 from 'uuid/v4'
  import getUserId from './utils/getUserId'
+ import md5 from 'md5'
 
 export const typeDefs = `
 type User {
@@ -34,8 +35,8 @@ type Message {
   messageUser: User!
 }
 type Query {
-  AllPosts: [Post],
-  AllUsers: [User]
+  getPosts: [Post],
+  getUsers: [User]
 }
 
 type Mutation {
@@ -65,10 +66,10 @@ input CreateUserInput {
  `;
  export const resolvers = {
    Query : {
-     AllPosts(object, params, ctx, resolveInfo) {
+     getPosts(object, params, ctx, resolveInfo) {
        return neo4jgraphql(object, params, ctx, resolveInfo);
      },
-     AllUsers(object, params, ctx, resolveInfo) {
+     getUsers(object, params, ctx, resolveInfo) {
       return neo4jgraphql(object, params, ctx, resolveInfo);
     }
    },
@@ -108,7 +109,7 @@ input CreateUserInput {
           ...params.data,
           id: uuidv4(),
           password: password,
-          avatar: "",
+          avatar: `http://gravatar.com/avatar/${md5(params.data.userName)}?d=identicon`,
           joinDate: new Date().toString(),
           favorites: [],
           posts: []

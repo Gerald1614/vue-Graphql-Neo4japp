@@ -1,0 +1,13 @@
+query  {
+  getPosts {
+    title
+    description
+    id
+    createdAt
+    imageUrl
+    author {
+      id
+      userName
+    }
+  }
+}
