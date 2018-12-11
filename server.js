@@ -1,5 +1,5 @@
 
-import  { ApolloServer, makeExecutableSchema, gql }  from 'apollo-server-express'
+import  { ApolloServer, makeExecutableSchema, gql, AuthenticationError, UserInputError }  from 'apollo-server-express'
 import express from 'express'
 import { typeDefs, resolvers } from './schema.js'
 import { augmentSchema } from 'neo4j-graphql-js'

@@ -1,0 +1,14 @@
+query {
+  getCurrentUser {
+    id
+    userName
+    email
+    avatar
+    joinDate
+    favorites {
+      id
+      title
+      imageUrl
+    }
+  }
+}

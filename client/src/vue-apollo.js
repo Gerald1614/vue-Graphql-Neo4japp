@@ -1,5 +1,6 @@
 import Vue from "vue";
 import VueApollo from "vue-apollo";
+import { InMemoryCache } from "apollo-cache-inmemory";
 import {
   createApolloClient,
   restartWebsockets
@@ -30,7 +31,7 @@ const defaultOptions = {
   // You need to pass a `wsEndpoint` for this to work
   websocketsOnly: false,
   // Is being rendered on the server?
-  ssr: false
+  ssr: false,
 
   // Override default apollo link
   // note: don't override httpLink here, specify httpLink options in the
@@ -38,11 +39,13 @@ const defaultOptions = {
   // link: myLink
 
   // Override default cache
-  // cache: myCache
+  cache: new InMemoryCache(),
 
   // Override the way the Authorization header is set
-  // getAuth: (tokenName) => ...
-
+  getAuth: tokenName => {
+    const token = localStorage.getItem(tokenName);
+    return token || "";
+  }
   // Additional ApolloClient options
   // apollo: { ... }
 
@@ -51,7 +54,7 @@ const defaultOptions = {
 };
 
 // Call this in the Vue app file
-export function createProvider(options = {}) {
+export function createProvider(options = {}, { router }) {
   // Create apollo client
   const { apolloClient, wsClient } = createApolloClient({
     ...defaultOptions,
@@ -64,17 +67,24 @@ export function createProvider(options = {}) {
     defaultClient: apolloClient,
     defaultOptions: {
       $query: {
-        // fetchPolicy: 'cache-and-network',
+        fetchPolicy: "cache-and-network"
       }
     },
-    errorHandler(error) {
-      // eslint-disable-next-line no-console
-      console.log(
-        "%cError",
-        "background: red; color: white; padding: 2px 4px; border-radius: 3px; font-weight: bold;",
-        error.message
-      );
-    }
+    errorHandler (error) {
+      if (isUnauthorizedError(error)) {
+        // Redirect to login page
+        if (router.currentRoute.name !== 'login') {
+          router.replace({
+            name: 'login',
+            params: {
+              wantedRoute: router.currentRoute.fullPath,
+            },
+          })
+        }
+      } else {
+        console.log('%cError', 'background: red; color: white; padding: 2px 4px; border-radius: 3px; font-weight: bold;', error.message)
+      }
+    },
   });
 
   return apolloProvider;
@@ -106,4 +116,8 @@ export async function onLogout(apolloClient) {
     // eslint-disable-next-line no-console
     console.log("%cError on cache reset (logout)", "color: orange;", e.message);
   }
+}
+function isUnauthorizedError (error) {
+  const { graphQLErrors } = error
+  return (graphQLErrors && graphQLErrors.some(e => e.message === 'Unauthorized'))
 }

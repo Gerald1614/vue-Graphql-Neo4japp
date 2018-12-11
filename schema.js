@@ -36,7 +36,8 @@ type Message {
 }
 type Query {
   getPosts: [Post],
-  getUsers: [User]
+  getUsers: [User],
+  getCurrentUser: User
 }
 
 type Mutation {
@@ -71,12 +72,22 @@ input CreateUserInput {
      },
      getUsers(object, params, ctx, resolveInfo) {
       return neo4jgraphql(object, params, ctx, resolveInfo);
+    },
+    async getCurrentUser(object, params, ctx, resolveInfo) {
+      const userId = await getUserId(ctx.req)
+      var session = await ctx.driver.session()
+      return  session.run('MATCH(user:User {id: $nameParam }) RETURN user as user', {nameParam: userId})
+      .then( (result) => {
+        console.log(result.records[0]._fields[0].properties)
+        return result.records[0]._fields[0].properties
+        })
+      .catch((err) => console.log(err))
+
     }
    },
    Mutation: {
      async CreatePost(object, params, ctx, resolveInfo) {
       const userId = await getUserId(ctx.req)
-      console.log(params.data)
         const newPost = {
           ...params.data,
           id: uuidv4(),
@@ -85,7 +96,6 @@ input CreateUserInput {
           author: userId,
           messages: []
         }
-
         var session = await ctx.driver.session()
         return session.run(
           'MATCH (user:User {id: $idUser}) ' +
@@ -128,8 +138,6 @@ input CreateUserInput {
           if (!isMatch) {
             throw new Error('Unable to login');
           }
-          console.log(token(user.id));
-          console.log(user);
           return {user, token: token(user.id)};
         }
         catch (err) {
@@ -140,18 +148,18 @@ input CreateUserInput {
 
      }
    },
-  //  Post: {
-  //    author: async (object, params, ctx, resolveInfo) => {
-  //     const userId = await getUserId(ctx.req)
-  //     var author = await ctx.driver.session()
-  //     return author.run(
-  //       'MATCH (user:User {id: $idUser}) ' +
-  //       'RETURN user',
-  //         {'idUser': userId})
-  //     .then( (result) => {
-  //       return result.records[0]._fields[0].properties
-  //       })
-  //     .catch((err) => console.log(err))
-  //    }
-  //  }
+   Post: {
+     author: async (object, params, ctx, resolveInfo) => {
+      const userId = object.author.id
+      var author = await ctx.driver.session()
+      return author.run(
+        'MATCH (user:User {id: $idUser}) ' +
+        'RETURN user',
+          {'idUser': userId})
+      .then( (result) => {
+        return result.records[0]._fields[0].properties
+        })
+      .catch((err) => console.log(err))
+     }
+   },
  }
