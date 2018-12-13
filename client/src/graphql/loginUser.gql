@@ -9,6 +9,15 @@ mutation ($email: String!, $password: String!){
     email
     id
     password
+    avatar
+    favorites {
+      id
+      title
+      description
+    }
+    joinDate
+    userName
+    
   }
   	token
   }

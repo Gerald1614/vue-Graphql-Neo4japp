@@ -39,25 +39,15 @@
 <script> 
 import LoginUser from '../../graphql/loginUser.gql'
 import { onLogin } from '../../vue-apollo.js'
-import getCurrentUser from '../../mixins/UserCurrent'
+import getCurrentUser from '../../graphql/getCurrentUser.gql'
 
 export default {
   name: "Signin",
-  mixins: [
-    getCurrentUser
-  ],
   data() {
     return {
       email: "",
       password: ""
     };
-  },
-  watch: {
-    getCurrentUser(value) {
-      if(value) {
-        this.$router.push('/')
-      }
-    }
   },
   methods: {
     async handleSigninUser() {
@@ -70,8 +60,17 @@ export default {
           }
         });
         const apolloClient = this.$apollo.provider.defaultClient
-        await onLogin(apolloClient, result.data.LoginUser.token)
-        this.$router.go()
+        const currentUser = this.$apollo
+          .query({
+            query: getCurrentUser
+          })
+          .then(user => {
+            console.log(user.data.getCurrentUser)
+          });
+        onLogin(apolloClient, result.data.LoginUser.token)
+        .then(() => {
+          this.$router.push('/')
+        })
       }
       catch(error) {
         console.error(error);

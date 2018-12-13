@@ -6,6 +6,7 @@ import Posts from "./components/Posts/Posts.vue";
 import Profile from "./components/Auth/Profile.vue";
 import Signin from "./components/Auth/Signin.vue";
 import Signup from "./components/Auth/Signup.vue";
+import Logout from "./components/Auth/Logout.vue";
 
 Vue.use(Router);
 
@@ -32,6 +33,11 @@ export default new Router({
       path: "/signin",
       name: "Signin",
       component: Signin
+    },
+    {
+      path: "/logout",
+      name: "Logout",
+      component: Logout
     },
     {
       path: "/posts",

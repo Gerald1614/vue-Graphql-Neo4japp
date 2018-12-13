@@ -1,20 +1,17 @@
 import Vue from "vue";
-import './plugins/vuetify'
+import "./plugins/vuetify";
 import App from "./App.vue";
 import router from "./router";
-import { createProvider } from './vue-apollo'
-import getCurrentUser from './graphql/getCurrentUser.gql'
+import store from "./store"
+import { createProvider } from "./vue-apollo";
+// import currentUser from './mixins/getCurrentUser'
 
 Vue.config.productionTip = false;
-const apolloProvider = createProvider({}, { router })
+const apolloProvider = createProvider({}, { router });
 
 new Vue({
   router,
+  store,
   apolloProvider,
-  render: h => h(App),
-  created() {
-    this.$apollo.query({
-      query: getCurrentUser
-    }).then((currentUser) => {console.log(currentUser)})
-    }
+  render: h => h(App)
 }).$mount("#app");
