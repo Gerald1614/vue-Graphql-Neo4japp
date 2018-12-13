@@ -1,6 +1,5 @@
 import Vue from "vue";
 import VueApollo from "vue-apollo";
-import store from "./store";
 import { InMemoryCache } from "apollo-cache-inmemory";
 import {
   createApolloClient,
@@ -50,65 +49,57 @@ const defaultOptions = {
   // apollo: { ... }
 
   // Client local data (see apollo-link-state)
-  //   clientState: {
-  //     resolvers: {},
-  //     defaults: { isLoggedIn: false },
-  //     typeDefs: `type Query {
-  //       isLoggedIn: Boolean
-  //       getCurrentUser: User}`
-  //   }
+  clientState: {
+    resolvers: {},
+    defaults: { isLoggedIn: false },
+    typeDefs: `type Query {
+      isLoggedIn: Boolean
+      getCurrentUser: User}`
+  }
 };
 
 // Call this in the Vue app file
-export function createProvider(options = {}, { router }) {
-  // Create apollo client
-  const { apolloClient, wsClient } = createApolloClient({
-    ...defaultOptions,
-    ...options
-  });
-  apolloClient.wsClient = wsClient;
+// export function createProvider(options = {}, { router }) {
+//   // Create apollo client
+//   const { apolloClient, wsClient } = createApolloClient({
+//     ...defaultOptions,
+//     ...options
+//   });
+//   apolloClient.wsClient = wsClient;
+export const { apolloClient, wsClient } = createApolloClient(defaultOptions);
+// Create vue apollo provider
+export const apolloProvider = new VueApollo({
+  defaultClient: apolloClient,
+  defaultOptions: {
+    $query: {
+      fetchPolicy: "cache-and-network"
+    }
+  },
+  errorHandler(error) {
+    console.log(
+      "%cAn error occured",
+      "background: red; color: white; padding: 4px; border-radius: 4px;font-weight: bold;"
+    );
+    console.log(error.message);
+    if (error.graphQLErrors) {
+      console.log(error.graphQLErrors);
+    }
+    if (error.networkError) {
+      console.log(error.networkError);
+    }
+  }
+});
 
-  // Create vue apollo provider
-  const apolloProvider = new VueApollo({
-    defaultClient: apolloClient,
-    defaultOptions: {
-      $query: {
-        fetchPolicy: "cache-and-network"
-      }
-    },
-    errorHandler (error) {
-      if (isUnauthorizedError(error)) {
-        // Redirect to login page
-        if (router.currentRoute.name !== "Signin") {
-          router.replace({
-            name: "Signin",
-            params: {
-              wantedRoute: router.currentRoute.fullPath,
-            },
-          })
-        }
-      } else {
-        console.log(
-          "%cError",
-          "background: red; color: white; padding: 2px 4px; border-radius: 3px; font-weight: bold;",
-          error.message
-        );
-      }
-    },
-  });
-
-  return apolloProvider;
-}
+// }
 
 // Manually call this when user log in
 export async function onLogin(apolloClient, token) {
   if (typeof localStorage !== "undefined" && token) {
     localStorage.setItem(AUTH_TOKEN, token);
   }
-  store.commit("toggleIsLoggedIn", true);
-  // apolloClient.writeData({
-  //   data: { isLoggedIn: true }
-  // });
+  apolloClient.writeData({
+    data: { isLoggedIn: true }
+  });
   //if (apolloClient.wsClient) restartWebsockets(apolloClient.wsClient);
   // try {
   //   await apolloClient.resetStore();
@@ -131,9 +122,11 @@ export async function onLogout(apolloClient) {
   //   console.log("%cError on cache reset (logout)", "color: orange;", e.message);
   // }
   //apolloClient.clearStore();
-  store.commit("toggleIsLoggedIn", false);
+  apolloClient.writeData({
+    data: { isLoggedIn: false }
+  });
 }
-function isUnauthorizedError (error) {
-  const { graphQLErrors } = error
+function isUnauthorizedError(error) {
+  const { graphQLErrors } = error;
   return graphQLErrors && graphQLErrors.some(e => e.message === "Unauthorized");
 }

@@ -7,7 +7,8 @@ import Profile from "./components/Auth/Profile.vue";
 import Signin from "./components/Auth/Signin.vue";
 import Signup from "./components/Auth/Signup.vue";
 import Logout from "./components/Auth/Logout.vue";
-import AuthGuard from "./AuthGuard";
+import { apolloClient } from "./vue-apollo";
+import getCurrentUser from './graphql/getCurrentUser.gql'
 
 Vue.use(Router);
 
@@ -24,7 +25,19 @@ export default new Router({
       path: "/profile",
       name: "Profile",
       component: Profile,
-      beforeEnter: AuthGuard
+      beforeEnter: async (to, from, next) => {
+        let currentUser = await apolloClient.query({
+          query: getCurrentUser,
+          fetchPolicy: 'network-only'
+        });
+        if (!currentUser.data.getCurrentUser) {
+          next({
+            path: "/signin"
+          });
+        } else {
+          next();
+        }
+      }
     },
     {
       path: "/signup",

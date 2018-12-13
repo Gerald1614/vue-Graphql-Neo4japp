@@ -62,7 +62,6 @@
 <script>
 import Home from './components/Home'
 import gql from 'graphql-tag'
-import { mapGetters } from 'vuex'
 export default {
   name: 'App',
   data () {
@@ -70,10 +69,15 @@ export default {
       sideNav: false
     }
   },
+  apollo: {
+    isLoggedIn: {
+      query: gql`
+          query {
+            isLoggedIn @client
+          }`
+    }
+},
   computed: {
-    ...mapGetters([
-    'isLoggedIn'
-    ]),
     hbNavItems() {
       let items = [
         {icon: 'chat', title:"Posts", link: '/posts'},
