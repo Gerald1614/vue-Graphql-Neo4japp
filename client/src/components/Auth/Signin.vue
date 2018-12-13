@@ -51,6 +51,7 @@ export default {
   },
   methods: {
     async handleSigninUser() {
+      localStorage.setItem('apollo-token', "");
       try {
         let result = await this.$apollo.mutate({
           mutation: LoginUser,

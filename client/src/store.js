@@ -1,13 +1,13 @@
-import Vue from 'vue'
-import Vuex from 'vuex'
-Vue.use(Vuex)
+import Vue from "vue";
+import Vuex from "vuex";
+Vue.use(Vuex);
 
 const state = {
   isLoggedIn: false
 };
 const mutations = {
-  toggleIsLoggedIn (state, payload) {
-    state.isLoggedIn = payload
+  toggleIsLoggedIn(state, payload) {
+    state.isLoggedIn = payload;
   }
 };
 const getters = {
@@ -17,4 +17,4 @@ export default new Vuex.Store({
   state,
   mutations,
   getters
-})
+});

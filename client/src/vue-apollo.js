@@ -1,6 +1,6 @@
 import Vue from "vue";
 import VueApollo from "vue-apollo";
-import  store from './store';
+import store from "./store";
 import { InMemoryCache } from "apollo-cache-inmemory";
 import {
   createApolloClient,
@@ -50,14 +50,14 @@ const defaultOptions = {
   // apollo: { ... }
 
   // Client local data (see apollo-link-state)
-//   clientState: {
-//     resolvers: {},
-//     defaults: { isLoggedIn: false },
-//     typeDefs: `type Query { 
-//       isLoggedIn: Boolean
-//       getCurrentUser: User}`
-//   }
- };
+  //   clientState: {
+  //     resolvers: {},
+  //     defaults: { isLoggedIn: false },
+  //     typeDefs: `type Query {
+  //       isLoggedIn: Boolean
+  //       getCurrentUser: User}`
+  //   }
+};
 
 // Call this in the Vue app file
 export function createProvider(options = {}, { router }) {
@@ -105,7 +105,7 @@ export async function onLogin(apolloClient, token) {
   if (typeof localStorage !== "undefined" && token) {
     localStorage.setItem(AUTH_TOKEN, token);
   }
-  store.commit('toggleIsLoggedIn', true)
+  store.commit("toggleIsLoggedIn", true);
   // apolloClient.writeData({
   //   data: { isLoggedIn: true }
   // });
@@ -131,7 +131,7 @@ export async function onLogout(apolloClient) {
   //   console.log("%cError on cache reset (logout)", "color: orange;", e.message);
   // }
   //apolloClient.clearStore();
-  store.commit('toggleIsLoggedIn', false)
+  store.commit("toggleIsLoggedIn", false);
 }
 function isUnauthorizedError (error) {
   const { graphQLErrors } = error

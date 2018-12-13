@@ -34,6 +34,17 @@
           <v-icon class="hidden-sm-only" left>{{ item.icon }}</v-icon>
           {{ item.title }}
         </v-btn>
+        <v-btn flat to="/profile" v-if="isLoggedIn">
+          <v-icon class="hidden-sm-only">account_box</v-icon>
+          <v-badge right color="red darken-2">
+            <span slot="badge">1</span>
+            Profile
+          </v-badge>
+        </v-btn>
+        <v-btn flat v-if="isLoggedIn" to="/logout">
+          <v-icon class="hiddel-sm-only">exit_to_app</v-icon>
+          Signout
+        </v-btn>
       </v-toolbar-items>
     </v-toolbar>
 
@@ -62,18 +73,7 @@ export default {
   computed: {
     ...mapGetters([
     'isLoggedIn'
-  ]),
-    // isLoggedIn() {
-    //   return localStorage.getItem('apollo-token')
-    //   // const apolloClient = this.$apollo.provider.defaultClient
-    //   // let response = apolloClient.readQuery({
-    //   //   query: gql`{
-    //   //     isLoggedIn
-    //   //   }`,
-    //   // });
-    //   // console.log(response.isLoggedIn)
-    //   // return response.isLoggedIn
-    // },
+    ]),
     hbNavItems() {
       let items = [
         {icon: 'chat', title:"Posts", link: '/posts'},
@@ -82,8 +82,7 @@ export default {
       ];
       if (this.isLoggedIn) {
         items = [
-          {icon: 'chat', title:"Posts", link: '/posts'},
-          {icon: 'chat', title:"Log Out", link: '/logout'}
+          {icon: 'chat', title:"Posts", link: '/posts'}
         ]
       }
       return items
@@ -100,7 +99,8 @@ export default {
         items = [
           {icon: 'chat', title:"Posts", link: '/posts'},
           {icon: 'stars', title: 'Create Post', link: '/post/add'},
-          {icon: 'chat', title:"Log Out", link: '/logout'}
+          {icon: 'account_box', title: 'Profile', link: '/profile'},
+          {icon: 'exit_to_app', title:"Log Out", link: '/logout'}
         ]
       }
       return items
