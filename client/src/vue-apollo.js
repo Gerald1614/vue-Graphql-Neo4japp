@@ -1,12 +1,9 @@
 import Vue from "vue";
 import VueApollo from "vue-apollo";
 import { InMemoryCache } from "apollo-cache-inmemory";
-import {
-  createApolloClient,
-  restartWebsockets
-} from "vue-cli-plugin-apollo/graphql-client";
+import { createApolloClient, restartWebsockets } from "vue-cli-plugin-apollo/graphql-client";
 
-import getCurrentUser from './graphql/getCurrentUser.gql'
+import getCurrentUser from "./graphql/getCurrentUser.gql";
 
 // Install the vue plugin
 Vue.use(VueApollo);
@@ -116,7 +113,7 @@ export async function onLogout(apolloClient) {
   if (typeof localStorage !== "undefined") {
     localStorage.removeItem(AUTH_TOKEN);
     apolloClient.writeData({
-      data: { isLoggedIn: false }
+      data: { isLoggedIn: false, getCurrentUser: null }
     });
   //apolloClient.clearStore();
   };

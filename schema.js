@@ -125,8 +125,15 @@ input CreateUserInput {
           posts: []
         }
         console.log(token(user.id)) 
-        return {user, token: token(user.id)};
-
+        var session = await ctx.driver.session()
+        return session.run(
+          'CREATE (user:User $user) ' +
+          'RETURN user',
+            {'user': user} )
+        .then( (result) => {
+          return {user: result.records[0]._fields[0].properties, token:token(user.id)}
+          })
+        .catch((err) => console.log(err))
     },
      async LoginUser(object, params, ctx, resolveInfo) {
       var session = await ctx.driver.session()

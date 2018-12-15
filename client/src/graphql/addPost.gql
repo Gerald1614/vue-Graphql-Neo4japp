@@ -1,0 +1,21 @@
+mutation ($title: String!, $description: String!, $imageUrl: String!, $categories: [String]!){
+  CreatePost (
+    data: {
+      title:$title
+      description:$description
+      imageUrl:$imageUrl
+      categories:$categories
+    }
+  )
+  {
+    title
+    description
+    id
+    createdAt
+    imageUrl
+ 	author {
+    id
+    userName
+  }
+  }
+}

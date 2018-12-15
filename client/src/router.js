@@ -12,7 +12,8 @@ import getCurrentUser from './graphql/getCurrentUser.gql'
 
 Vue.use(Router);
 
-export default new Router({
+
+const router = new Router({
   mode: "history",
   base: process.env.BASE_URL,
   routes: [
@@ -25,19 +26,7 @@ export default new Router({
       path: "/profile",
       name: "Profile",
       component: Profile,
-      beforeEnter: async (to, from, next) => {
-        let currentUser = await apolloClient.query({
-          query: getCurrentUser,
-          fetchPolicy: 'network-only'
-        });
-        if (!currentUser.data.getCurrentUser) {
-          next({
-            path: "/signin"
-          });
-        } else {
-          next();
-        }
-      }
+      meta: { requiresAuth: true }
     },
     {
       path: "/signup",
@@ -62,7 +51,29 @@ export default new Router({
     {
       path: "/post/add",
       name: "AddPost",
-      component: AddPost
+      component: AddPost,
+      meta: { requiresAuth: true }
     }
   ]
 });
+
+router.beforeEach(async (to, from, next) => {
+  if (to.matched.some(record => record.meta.requiresAuth)) {
+    let currentUser = await apolloClient.query({
+      query: getCurrentUser,
+      fetchPolicy: "network-only"
+    });
+    if (currentUser.data.getCurrentUser) {
+      next();
+    } else {
+      next({
+        path: "/signin",
+        query: { redirect: to.fullPath }
+      });
+    }
+  } else {
+    next()
+  }
+
+})
+export default router

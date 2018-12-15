@@ -62,7 +62,6 @@
 <script> 
 import signUp from '../../graphql/signUp.gql'
 import { onLogin, apolloClient } from '../../vue-apollo.js'
-import getCurrentUser from '../../graphql/getCurrentUser.gql'
 
 
 export default {
