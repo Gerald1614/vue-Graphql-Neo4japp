@@ -42,7 +42,7 @@ type Query {
 
 type Mutation {
   CreatePost(data: CreatePostInput!): Post
-  CreateUser(data: CreateUserInput!): User
+  CreateUser(data: CreateUserInput!): AuthPayload
   LoginUser(data: loginUserInput!): AuthPayload
 }
 type AuthPayload {
@@ -125,7 +125,7 @@ input CreateUserInput {
           posts: []
         }
         console.log(token(user.id)) 
-        return neo4jgraphql(object, user, ctx, resolveInfo)
+        return {user, token: token(user.id)};
 
     },
      async LoginUser(object, params, ctx, resolveInfo) {

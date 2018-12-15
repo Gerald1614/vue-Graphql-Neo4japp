@@ -2,7 +2,7 @@
   <v-container text-xs-center mt-5 pt-5>
     <v-layout row wrap>
       <v-flex xs12 sm6 offset-sm3>
-
+        <h1>Welcome back !</h1>
       </v-flex>
     </v-layout>
     <v-layout v-if="error" row wrap>
@@ -18,12 +18,12 @@
             <v-form v-model="isFormValid" lazy-validation ref="form" @submit.prevent="handleSigninUser">
               <v-layout row>
                 <v-flex xs12>
-                  <v-text-field :rules="formRules" v-model="email" prepend-icon="face" label="email" type="text" required></v-text-field>
+                  <v-text-field :rules="emailRules" v-model="email" prepend-icon="face" label="email" type="email" required></v-text-field>
                 </v-flex>
               </v-layout>
                <v-layout row>
                 <v-flex xs12>
-                  <v-text-field :rules="formRules" v-model="password" prepend-icon="extension" label="Password" type="password" required></v-text-field>
+                  <v-text-field :rules="passwordRules" v-model="password" prepend-icon="extension" label="Password" type="password" required></v-text-field>
                 </v-flex>
               </v-layout>
                <v-layout row>
@@ -32,7 +32,7 @@
                   color="accent" 
                   type="submit"
                   :loading="loading"
-                  :disabled="!isFormValid"
+                  :disabled="!isFormValid || loading"
                   >
                   Sign In
                   </v-btn>
@@ -51,8 +51,7 @@
 
 <script> 
 import LoginUser from '../../graphql/loginUser.gql'
-import { onLogin } from '../../vue-apollo.js'
-import getCurrentUser from '../../graphql/getCurrentUser.gql'
+import { onLogin, apolloClient } from '../../vue-apollo.js'
 
 
 export default {
@@ -64,9 +63,13 @@ export default {
       error: "",
       loading: false,
       isFormValid: true,
-      formRules: [
-        email => !!email || "this field is required",
-        email => email.length >3 || "must be more than 3 characters"
+      emailRules: [
+        email => !!email || "Email is required",
+        email => email.length >3 || "Email must be more than 3 characters"
+      ],
+      passwordRules: [
+        password => !!password || "Password is required",
+        password => password.length >3 || "Password must be more than 3 characters"
       ]
     };
   },
@@ -85,22 +88,11 @@ export default {
             email: this.email,
             password: this.password
           }
-        })
-        const apolloClient = this.$apollo.provider.defaultClient
-        const currentUser = this.$apollo
-          .query({
-            query: getCurrentUser
-          })
-          .then(user => {
-            console.log(user.data.getCurrentUser)
-            this.loading = false
-          })
-          .catch(err => {
-            throw new Error('authentication required')
-            })
+        }).then ((result) => {
         onLogin(apolloClient, result.data.LoginUser.token)
-        .then(() => {
-          this.$router.push('/')
+        }).then (() => {
+          this.loading = false
+          this.$router.push({ name: 'Home'})
         })
         .catch(error => {
         throw new Error('authentication required')

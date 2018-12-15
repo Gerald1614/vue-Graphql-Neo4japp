@@ -53,6 +53,10 @@
         <transition name="fade">
           <router-view></router-view>
         </transition>
+        <v-snackbar v-model="authSnackbar" color="success" :timeout="6000" bottom left>
+          <v-icon  class="mr-3">check_circle</v-icon>
+          <h3>You are now signed in !</h3>
+        </v-snackbar>
       </v-container>
 
     </v-content>
@@ -78,6 +82,9 @@ export default {
     }
 },
   computed: {
+    authSnackbar() {
+      return this.isLoggedIn
+    },
     hbNavItems() {
       let items = [
         {icon: 'chat', title:"Posts", link: '/posts'},

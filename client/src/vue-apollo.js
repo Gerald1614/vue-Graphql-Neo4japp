@@ -6,6 +6,8 @@ import {
   restartWebsockets
 } from "vue-cli-plugin-apollo/graphql-client";
 
+import getCurrentUser from './graphql/getCurrentUser.gql'
+
 // Install the vue plugin
 Vue.use(VueApollo);
 
@@ -75,19 +77,19 @@ export const apolloProvider = new VueApollo({
       fetchPolicy: "cache-and-network"
     }
   },
-  errorHandler(error) {
-    console.log(
-      "%cAn error occured",
-      "background: red; color: white; padding: 4px; border-radius: 4px;font-weight: bold;"
-    );
-    console.log(error.message);
-    if (error.graphQLErrors) {
-      console.log(error.graphQLErrors);
-    }
-    if (error.networkError) {
-      console.log(error.networkError);
-    }
-  }
+  // errorHandler(error) {
+  //   console.log(
+  //     "%cAn error occured",
+  //     "background: red; color: white; padding: 4px; border-radius: 4px;font-weight: bold;"
+  //   );
+  //   console.log(error.message);
+  //   if (error.graphQLErrors) {
+  //     console.log(error.graphQLErrors);
+  //   }
+  //   if (error.networkError) {
+  //     console.log(error.networkError);
+  //   }
+  // }
 });
 
 // }
@@ -96,37 +98,30 @@ export const apolloProvider = new VueApollo({
 export async function onLogin(apolloClient, token) {
   if (typeof localStorage !== "undefined" && token) {
     localStorage.setItem(AUTH_TOKEN, token);
+    apolloClient.writeData({
+      data: { isLoggedIn: true }
+    });
+    apolloClient
+      .query({
+        query: getCurrentUser
+      })
+      .then(user => {
+        console.log(user.data.getCurrentUser);
+      });
   }
-  apolloClient.writeData({
-    data: { isLoggedIn: true }
-  });
-  //if (apolloClient.wsClient) restartWebsockets(apolloClient.wsClient);
-  // try {
-  //   await apolloClient.resetStore();
-  // } catch (e) {
-  //   // eslint-disable-next-line no-console
-  //   console.log("%cError on cache reset (login)", "color: orange;", e.message);
-  // }
 }
 
 // Manually call this when user log out
 export async function onLogout(apolloClient) {
   if (typeof localStorage !== "undefined") {
     localStorage.removeItem(AUTH_TOKEN);
-  }
-  //if (apolloClient.wsClient) restartWebsockets(apolloClient.wsClient);
-  // try {
-  //   await apolloClient.resetStore();
-  // } catch (e) {
-  //   // eslint-disable-next-line no-console
-  //   console.log("%cError on cache reset (logout)", "color: orange;", e.message);
-  // }
+    apolloClient.writeData({
+      data: { isLoggedIn: false }
+    });
   //apolloClient.clearStore();
-  apolloClient.writeData({
-    data: { isLoggedIn: false }
-  });
+  };
 }
-function isUnauthorizedError(error) {
-  const { graphQLErrors } = error;
-  return graphQLErrors && graphQLErrors.some(e => e.message === "Unauthorized");
-}
+// function isUnauthorizedError(error) {
+//   const { graphQLErrors } = error;
+//   return graphQLErrors && graphQLErrors.some(e => e.message === "Unauthorized");
+// }

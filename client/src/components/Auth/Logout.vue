@@ -2,14 +2,15 @@
   
 </template>
 <script>
-import { onLogout } from '../../vue-apollo.js'
-import getCurrentUser from '../../graphql/getCurrentUser.gql'
+import { onLogout, apolloClient } from '../../vue-apollo.js'
 
 export default {
-  created() {
-    const apolloClient = this.$apollo.provider.defaultClient
-    onLogout(apolloClient)
-    .then(() => this.$router.push('/')) 
+  async created() {    
+    await onLogout(apolloClient)
+    .then(() => {
+      this.$router.push({ name: 'Home'})
+    })
+    
   }  
 }
 </script>
