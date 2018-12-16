@@ -34,8 +34,13 @@ type Message {
   messageDate: String
   messageUser: User!
 }
+type PostPage {
+  posts: [Post]
+  hasMore: Boolean
+}
 type Query {
   getPosts: [Post],
+  infiniteScrollPosts(data: infiniteScrollPostsInput): PostPage,
   getUsers: [User],
   getCurrentUser: User
 }
@@ -52,6 +57,10 @@ type AuthPayload {
 input loginUserInput {
   email: String!
   password: String!
+}
+input infiniteScrollPostsInput {
+  pageNum: Int!
+  pageSize: Int!
 }
 input CreatePostInput {
   title: String!
@@ -78,12 +87,48 @@ input CreateUserInput {
       var session = await ctx.driver.session()
       return  session.run('MATCH(user:User {id: $nameParam }) RETURN user as user', {nameParam: userId})
       .then( (result) => {
-        console.log(result.records[0]._fields[0].properties)
-        return result.records[0]._fields[0].properties
+        let [user]= result.records.map(function (record) {
+          return record.get("user").properties
+        })
+        return user
         })
       .catch((err) => console.log(err))
 
+    },
+    infiniteScrollPosts: async (object, params, ctx, resolveInfo) => {
+      let posts;
+      var session = await ctx.driver.session()
+      if (params.data.pageNum ===1) {
+        const postsData = await session.run(
+          'MATCH (posts:Post)<-[rel:POSTED]-(user:User) ' +
+          'RETURN posts {.title, .description, .id, .imageUrl, .categories, .createdAt, .likes, ' +
+          'author: user {.userName, .id, .avatar} } ORDER BY posts.createdAt DESC LIMIT $limit', {'limit':params.data.pageSize} )
+          posts = postsData.records.map(function (record) {
+            return record.get("posts")
+          })
+      } else {
+        const skips = params.data.pageSize* (params.data.pageNum-1);
+        const postsData = await session.run(
+          'MATCH (posts:Post)<-[rel:POSTED]-(user:User) ' +
+          'RETURN posts {.title, .description, .id, .imageUrl, .categories, .createdAt, .likes, ' +
+          'author: user {.userName, .id, .avatar} } ORDER BY posts.createdAt DESC LIMIT $limit' +
+        'SKIP $skips LIMIT $limit',  {'limit':params.data.pageSize, 'skips': skips} )
+        // console.log(posts)
+         posts = postsData.records.map(function (record) {
+          return record.get("posts")
+        })
+      }
+      
+      const totalDocs = await session.run('MATCH (post: Post) RETURN count(post)')
+        .then((result) => {
+          console.log(result)
+          return result.records[0]._fields[0].low
+          })
+        .catch((err) => console.log(err))
+        const hasMore = totalDocs > params.data.pageSize * params.data.pageNum
+        return { posts, hasMore }
     }
+ 
    },
    Mutation: {
      async CreatePost(object, params, ctx, resolveInfo) {
@@ -102,11 +147,16 @@ input CreateUserInput {
           'CREATE (post:Post $params) ' +
           'CREATE (user)-[rel:POSTED]->(post) ' +
           'SET user.posts = user.posts + post.id ' +
-          'RETURN post',
+          'RETURN post {.title, .description, .id, .imageUrl, .categories, .createdAt, .likes, ' +
+          'author: user {.userName, .id, .email, .avatar} }',
             {'idUser': userId,
             'params': newPost} )
-        .then( (result) => {
-          return result.records[0]._fields[0].properties
+        .then( async (result) => {
+          let [post] = await result.records.map(function (record) {
+            return record.get("post")
+            })
+            console.log(post)
+            return post
           })
         .catch((err) => console.log(err))
      },
@@ -139,7 +189,9 @@ input CreateUserInput {
       var session = await ctx.driver.session()
       return session.run('MATCH(user:User {email: $nameParam }) RETURN user as user', {nameParam: params.data.email})
       .then( async (result) => {
-        var user = result.records[0]._fields[0].properties
+        let [user] = await result.records.map(function (record) {
+           return record.get("user").properties
+           })
         try {
           const isMatch = await bcrypt.compare(params.data.password, user.password);
           if (!isMatch) {
@@ -153,20 +205,6 @@ input CreateUserInput {
     })
     .catch((err) => console.log(err))
 
-     }
-   },
-   Post: {
-     author: async (object, params, ctx, resolveInfo) => {
-      const userId = object.author.id
-      var author = await ctx.driver.session()
-      return author.run(
-        'MATCH (user:User {id: $idUser}) ' +
-        'RETURN user',
-          {'idUser': userId})
-      .then( (result) => {
-        return result.records[0]._fields[0].properties
-        })
-      .catch((err) => console.log(err))
      }
    },
  }

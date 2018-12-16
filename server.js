@@ -13,11 +13,11 @@ const schema = makeExecutableSchema({
     requireResolversForResolveType: false
   }
 });
-const augmentedSchema = augmentSchema(schema);
+//const augmentedSchema = augmentSchema(schema);
 const driver = neo4j.driver(NEO4J_URI, neo4j.auth.basic(NEO4J_USER, NEO4J_PWD));
 
 const server = new ApolloServer({
-  schema: augmentedSchema,
+  schema: schema,
   context: ({ req }) => {
     return {
       driver,

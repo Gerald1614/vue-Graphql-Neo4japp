@@ -1,0 +1,23 @@
+query($pageNum: Int!, $pageSize: Int!)  {
+  infiniteScrollPosts(pageNum: $pageNum, pageSize: $pageSize) {
+    hasMore
+    posts {
+      id
+        title
+        description
+        categories
+        createdAt
+        imageUrl
+        likes
+        messages {
+          id
+        }
+        author {
+          id
+          userName
+          avatar
+        }
+      }
+  }
+ 
+}
