@@ -1,5 +1,12 @@
-query($pageNum: Int!, $pageSize: Int!)  {
-  infiniteScrollPosts(pageNum: $pageNum, pageSize: $pageSize) {
+import gql from 'graphql-tag'
+export const INFINITE_SCROLL_POSTS_QUERY = gql `
+query infiniteScrollPosts ($pageNum: Int!, $pageSize: Int!) {
+  infiniteScrollPosts (
+    data: {
+      pageNum: $pageNum,
+      pageSize: $pageSize
+      }) 
+    {
     hasMore
     posts {
       id
@@ -19,5 +26,4 @@ query($pageNum: Int!, $pageSize: Int!)  {
         }
       }
   }
- 
-}
+}`

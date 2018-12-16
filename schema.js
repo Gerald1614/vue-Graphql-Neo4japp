@@ -101,19 +101,18 @@ input CreateUserInput {
       if (params.data.pageNum ===1) {
         const postsData = await session.run(
           'MATCH (posts:Post)<-[rel:POSTED]-(user:User) ' +
-          'RETURN posts {.title, .description, .id, .imageUrl, .categories, .createdAt, .likes, ' +
+          'RETURN posts {.title, .description, .id, .imageUrl, .categories, .messages, .createdAt, .likes, ' +
           'author: user {.userName, .id, .avatar} } ORDER BY posts.createdAt DESC LIMIT $limit', {'limit':params.data.pageSize} )
           posts = postsData.records.map(function (record) {
             return record.get("posts")
           })
       } else {
-        const skips = params.data.pageSize* (params.data.pageNum-1);
+        const skips = params.data.pageSize * (params.data.pageNum-1);
         const postsData = await session.run(
           'MATCH (posts:Post)<-[rel:POSTED]-(user:User) ' +
-          'RETURN posts {.title, .description, .id, .imageUrl, .categories, .createdAt, .likes, ' +
-          'author: user {.userName, .id, .avatar} } ORDER BY posts.createdAt DESC LIMIT $limit' +
+          'RETURN posts {.title, .description, .id, .imageUrl, .categories, .messages, .createdAt, .likes, ' +
+          'author: user {.userName, .id, .avatar} } ORDER BY posts.createdAt DESC ' +
         'SKIP $skips LIMIT $limit',  {'limit':params.data.pageSize, 'skips': skips} )
-        // console.log(posts)
          posts = postsData.records.map(function (record) {
           return record.get("posts")
         })
@@ -121,7 +120,6 @@ input CreateUserInput {
       
       const totalDocs = await session.run('MATCH (post: Post) RETURN count(post)')
         .then((result) => {
-          console.log(result)
           return result.records[0]._fields[0].low
           })
         .catch((err) => console.log(err))
@@ -155,7 +153,6 @@ input CreateUserInput {
           let [post] = await result.records.map(function (record) {
             return record.get("post")
             })
-            console.log(post)
             return post
           })
         .catch((err) => console.log(err))
