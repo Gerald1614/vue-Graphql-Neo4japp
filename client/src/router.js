@@ -3,6 +3,7 @@ import Router from "vue-router";
 import Home from "./components/Home.vue";
 import AddPost from "./components/Posts/AddPost.vue";
 import Posts from "./components/Posts/Posts.vue";
+import Post from "./components/Posts/Post.vue"
 import Profile from "./components/Auth/Profile.vue";
 import Signin from "./components/Auth/Signin.vue";
 import Signup from "./components/Auth/Signup.vue";
@@ -47,6 +48,12 @@ const router = new Router({
       path: "/posts",
       name: "posts",
       component: Posts
+    },
+    {
+      path: "/posts/:postId",
+      name: "post",
+      component: Post,
+      props: true
     },
     {
       path: "/post/add",

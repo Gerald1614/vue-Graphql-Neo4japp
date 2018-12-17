@@ -5,10 +5,5 @@ query {
     email
     avatar
     joinDate
-    favorites {
-      id
-      title
-      imageUrl
-    }
   }
 }

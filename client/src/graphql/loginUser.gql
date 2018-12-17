@@ -10,11 +10,6 @@ mutation ($email: String!, $password: String!){
     id
     password
     avatar
-    favorites {
-      id
-      title
-      description
-    }
     joinDate
     userName
     

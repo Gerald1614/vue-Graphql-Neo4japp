@@ -6,7 +6,7 @@
       <div v-else-if="error"> an error occured</div>
        <v-flex v-else-if="data" xs12>
         <v-carousel v-bind="{ 'cycle': true }" interval="3000">
-          <v-carousel-item v-for="post in data.getPosts" :key="post.id" :src="post.imageUrl">
+          <v-carousel-item v-for="post in data.getPosts" :key="post.id" :src="post.imageUrl" @click.native="goToPost(post.id)">
             <h1 id="carousel__title">{{ post.title }}</h1>
           </v-carousel-item>
         </v-carousel>
@@ -23,6 +23,11 @@ export default {
   name: "Home",
   data() {
     return {};
+  },
+  methods: {
+    goToPost(postId) {
+      this.$router.push(`/posts/${postId}`);
+    }
   }
 };
 </script>

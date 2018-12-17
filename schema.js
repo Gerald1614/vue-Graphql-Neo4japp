@@ -14,7 +14,7 @@ type User {
   password: String!
   avatar: String
   joinDate: String
-  favorites: [Post] @relation(name: "FAVORITES", direction: "OUT")
+  favorites: [Post] @relation(name: "LIKES", direction: "OUT")
   posts: [Post] @relation(name: "POSTED", direction: "OUT")
 }
 type Post {
@@ -38,8 +38,13 @@ type PostPage {
   posts: [Post]
   hasMore: Boolean
 }
+type LikesFaves {
+  likes: Int
+  favorites: [Post]
+}
 type Query {
   getPosts: [Post],
+  getPost(postId: ID!): Post!,
   infiniteScrollPosts(data: infiniteScrollPostsInput): PostPage,
   getUsers: [User],
   getCurrentUser: User
@@ -49,6 +54,8 @@ type Mutation {
   CreatePost(data: CreatePostInput!): Post
   CreateUser(data: CreateUserInput!): AuthPayload
   LoginUser(data: loginUserInput!): AuthPayload
+  LikePost(postId: ID!, userId: ID!): LikesFaves!
+  UnLikePost(postId: ID!, userName: String!): LikesFaves!
 }
 type AuthPayload {
   token: String!
@@ -95,6 +102,19 @@ input CreateUserInput {
       .catch((err) => console.log(err))
 
     },
+    async getPost(object, params, ctx, resolveInfo) {
+      const postId = params.postId
+      var session = await ctx.driver.session()
+      const postData = await session.run(
+      'MATCH(post:Post {id: $postId })<-[rel:POSTED]-(user:User)  ' +
+      'RETURN post {.title, .description, .id, .imageUrl, .categories, .messages, .createdAt, .likes, ' +
+      'author: user {.userName, .id, .avatar} }', {'postId': postId})
+      const [post] = postData.records.map(function (record) {
+        return record.get("post")
+      })
+      console.log(post)
+      return post
+    },
     infiniteScrollPosts: async (object, params, ctx, resolveInfo) => {
       let posts;
       var session = await ctx.driver.session()
@@ -129,13 +149,33 @@ input CreateUserInput {
  
    },
    Mutation: {
+     async LikePost(object, params, ctx, resolveInfo) {
+        const postId = params.postId
+        const userId = params.userId
+        var session = await ctx.driver.session()
+        const postData = await session.run(
+        'MATCH(post:Post {id: $postId }) ' +
+        'MATCH (user:User {id: $userId}) ' +
+        'MATCH (posts:Post)<-[rel1:LIKES]-(user) ' +
+        'MERGE (user)-[rel:LIKES]->(post) ' +
+        'ON CREATE SET post.likes = post.likes + 1, user.favorites = user.favorites + $postId ' +
+        'RETURN post {.likes}, posts', {'postId': postId, 'userId': userId})
+        const [post] = postData.records.map(function (record) {
+          return record.get("post")
+        })
+        const posts = postData.records.map(function (record) {
+          return record.get("posts").properties
+        })
+        console.log({likes: post.likes, favorites: posts})
+        return {likes: post.likes, favorites: posts}
+     },
      async CreatePost(object, params, ctx, resolveInfo) {
       const userId = await getUserId(ctx.req)
         const newPost = {
           ...params.data,
           id: uuidv4(),
           createdAt : new Date().toString(),
-          likes: null,
+          likes: 0,
           author: userId,
           messages: []
         }
