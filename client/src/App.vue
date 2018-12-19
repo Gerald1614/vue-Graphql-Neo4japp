@@ -37,7 +37,7 @@
         <v-btn flat to="/profile" v-if="isLoggedIn">
           <v-icon class="hidden-sm-only">account_box</v-icon>
           <v-badge right color="red darken-2">
-            <span slot="badge">1</span>
+            <span slot="badge" v-if="getCurrentUser">{{ getCurrentUser.favorites.length }}</span>
             Profile
           </v-badge>
         </v-btn>
@@ -65,12 +65,15 @@
 
 <script>
 import Home from './components/Home'
+import getCurrentUser from './graphql/getCurrentUser.gql'
 import gql from 'graphql-tag'
 export default {
   name: 'App',
   data () {
     return {
-      sideNav: false
+      sideNav: false,
+      authSnackbar: false,
+      badgeAnimated: false
     }
   },
   apollo: {
@@ -79,8 +82,11 @@ export default {
           query {
             isLoggedIn @client
           }`
+    },
+    getCurrentUser: {
+      query: getCurrentUser
     }
-},
+}
   computed: {
     authSnackbar() {
       return this.isLoggedIn

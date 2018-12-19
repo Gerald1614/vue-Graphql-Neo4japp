@@ -1,0 +1,10 @@
+mutation UN_LIKE_POST($postId: ID!, $userId: ID!) {
+  UnLikePost (postId: $postId, userId: $userId)  {
+  	likes
+    favorites {
+      id
+      title
+      imageUrl
+    }
+  }
+}

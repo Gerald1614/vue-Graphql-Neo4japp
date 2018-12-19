@@ -55,7 +55,7 @@ type Mutation {
   CreateUser(data: CreateUserInput!): AuthPayload
   LoginUser(data: loginUserInput!): AuthPayload
   LikePost(postId: ID!, userId: ID!): LikesFaves!
-  UnLikePost(postId: ID!, userName: String!): LikesFaves!
+  UnLikePost(postId: ID!, userId: ID!): LikesFaves!
 }
 type AuthPayload {
   token: String!
@@ -92,15 +92,24 @@ input CreateUserInput {
     async getCurrentUser(object, params, ctx, resolveInfo) {
       const userId = await getUserId(ctx.req)
       var session = await ctx.driver.session()
-      return  session.run('MATCH(user:User {id: $nameParam }) RETURN user as user', {nameParam: userId})
+      return  session.run(
+        'MATCH (user:User {id: $nameParam }) ' +
+        'OPTIONAL MATCH (user)-[:LIKES]->(favorites:Post) ' +
+        'RETURN favorites, user', {nameParam: userId})
       .then( (result) => {
         let [user]= result.records.map(function (record) {
           return record.get("user").properties
         })
+ 
+          let favorites = result.records.map(function (record) {
+            if (record.get("favorites")) {
+              return record.get("favorites").properties
+            } 
+          })
+            user.favorites = favorites
         return user
         })
       .catch((err) => console.log(err))
-
     },
     async getPost(object, params, ctx, resolveInfo) {
       const postId = params.postId
@@ -154,21 +163,46 @@ input CreateUserInput {
         const userId = params.userId
         var session = await ctx.driver.session()
         const postData = await session.run(
-        'MATCH(post:Post {id: $postId }) ' +
+        'MATCH (post:Post {id: $postId }) ' +
         'MATCH (user:User {id: $userId}) ' +
-        'MATCH (posts:Post)<-[rel1:LIKES]-(user) ' +
         'MERGE (user)-[rel:LIKES]->(post) ' +
-        'ON CREATE SET post.likes = post.likes + 1, user.favorites = user.favorites + $postId ' +
-        'RETURN post {.likes}, posts', {'postId': postId, 'userId': userId})
+        'ON CREATE SET post.likes = post.likes +1, user.favorites = user.favorites + $postId ' +
+        'WITH post, user ' +
+        'OPTIONAL MATCH (favorites:Post)<-[rel1:LIKES]-(toto:User {id: $userId}) ' +
+        'RETURN post {.likes}, favorites', {'postId': postId, 'userId': userId})
         const [post] = postData.records.map(function (record) {
           return record.get("post")
         })
-        const posts = postData.records.map(function (record) {
-          return record.get("posts").properties
+        const favorites = postData.records.map(function (record) {
+          return record.get("favorites").properties
         })
-        console.log({likes: post.likes, favorites: posts})
-        return {likes: post.likes, favorites: posts}
+        console.log({likes: post.likes, favorites})
+        return {likes: post.likes, favorites}
      },
+     async UnLikePost(object, params, ctx, resolveInfo) {
+      const postId = params.postId
+      const userId = params.userId
+      var session = await ctx.driver.session()
+      const postData = await session.run(
+      'MATCH(post:Post {id: $postId }) ' +
+      'MATCH (user:User {id: $userId}) ' +
+      'WITH user, post WHERE post.likes >0 ' +
+      'SET post.likes = post.likes -1, user.favorites = FILTER(x IN user.favorites WHERE x <> $postId) ' +
+      'WITH user, post ' +
+      'OPTIONAL MATCH (user)-[rel:LIKES]->(post) DELETE rel ' +
+      'WITH user, post ' +
+      'MATCH (favorites:Post)<-[rel1:LIKES]-(toto:User {id: $userId}) ' +
+      'RETURN post {.likes}, favorites', {'postId': postId, 'userId': userId})
+      console.log(postData)
+      const [post] = postData.records.map(function (record) {
+        return record.get("post")
+      })
+      const favorites = postData.records.map(function (record) {
+        return record.get("favorites").properties
+      })
+      console.log({likes: post.likes, favorites: favorites})
+      return {likes: post.likes, favorites: favorites}
+   },
      async CreatePost(object, params, ctx, resolveInfo) {
       const userId = await getUserId(ctx.req)
         const newPost = {

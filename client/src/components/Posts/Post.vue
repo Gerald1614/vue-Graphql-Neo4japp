@@ -4,8 +4,8 @@
       <v-flex xs12>
         <v-card-title>
           <h1>{{getPost.title }}</h1>
-          <v-btn large icon >
-            <v-icon large color="grey">favorite</v-icon>
+          <v-btn @click="handleToggleLike" large icon v-if="getCurrentUser">
+            <v-icon large :color="postLiked ? 'red' : 'grey'">favorite</v-icon>
           </v-btn>
           <h3 class="ml-3 font-weight-thin"> {{ getPost.likes }} LIKES</h3>
           <v-spacer></v-spacer>
@@ -32,6 +32,8 @@
 </template>
 <script>
 import { GETPOST_QUERY } from '../../graphql/getPost.js'
+import LikePost from '../../graphql/likePost.gql'
+import UnLikePost from '../../graphql/unLikePost.gql'
 import getCurrentUser from '../../graphql/getCurrentUser.gql'
 export default {
   name: "Post",
@@ -46,11 +48,61 @@ export default {
       query: GETPOST_QUERY,
       variables(){ return { postId: this.postId  } }
     },
-    user: {
+    getCurrentUser: {
       query: getCurrentUser
     }
   },
+  computed: {
+    postLiked() {
+      if(this.getCurrentUser.favorites[0] !=null)  {
+        return this.getCurrentUser.favorites.some(fave => fave.id === this.postId)
+      } else return false
+    }
+  },
   methods: {
+    
+    handleToggleLike() {
+      if(this.postLiked) {
+        this.handleUnLikePost()
+      } else {
+        this.handleLikePost()
+      }
+    },
+    handleLikePost() {
+      this.$apollo.mutate({
+        mutation: LikePost,
+        variables: {
+          postId: this.postId,
+          userId: this.getCurrentUser.id
+        }
+      })
+      .then((data) =>{
+        console.log(data)
+        this.$apollo.queries.getCurrentUser.refresh()
+        this.$apollo.queries.getPost.refresh()
+      })
+      .catch(error => {
+      throw new Error('could not update post')
+    })
+    },
+    handleUnLikePost() {
+      this.$apollo.mutate({
+        mutation: UnLikePost,
+        variables: {
+          postId: this.postId,
+          userId: this.getCurrentUser.id
+        }
+      })
+      .then((data) =>{
+        console.log(data)
+        this.$apollo.queries.getCurrentUser.refresh()
+        this.$apollo.queries.getPost.refresh()
+      })
+      .catch(error => {
+        console.log(error)
+      throw new Error('could not update post')
+    })
+    },
     goToPreviousPage() {
       this.$router.go(-1)
     },
