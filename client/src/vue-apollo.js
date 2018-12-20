@@ -115,8 +115,8 @@ export async function onLogout(apolloClient) {
     apolloClient.writeData({
       data: { isLoggedIn: false, getCurrentUser: null }
     });
-  //apolloClient.clearStore();
-  };
+    //apolloClient.clearStore();
+  }
 }
 // function isUnauthorizedError(error) {
 //   const { graphQLErrors } = error;

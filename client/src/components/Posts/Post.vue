@@ -31,22 +31,22 @@
   </v-container>
 </template>
 <script>
-import { GETPOST_QUERY } from '../../graphql/getPost.js'
-import LikePost from '../../graphql/likePost.gql'
-import UnLikePost from '../../graphql/unLikePost.gql'
-import getCurrentUser from '../../graphql/getCurrentUser.gql'
+import { GETPOST_QUERY } from "../../graphql/getPost.js"
+import LikePost from "../../graphql/likePost.gql"
+import UnLikePost from "../../graphql/unLikePost.gql"
+import getCurrentUser from "../../graphql/getCurrentUser.gql"
 export default {
   name: "Post",
-  props: ['postId'],
+  props: ["postId"],
   data() {
     return {
       dialog: false
-    }
+    };
   },
   apollo: {
     getPost: {
       query: GETPOST_QUERY,
-      variables(){ return { postId: this.postId  } }
+      variables() { return { postId: this.postId  } }
     },
     getCurrentUser: {
       query: getCurrentUser
@@ -54,20 +54,19 @@ export default {
   },
   computed: {
     postLiked() {
-      if(this.getCurrentUser.favorites[0] !=null)  {
+      if (this.getCurrentUser.favorites[0] != null)  {
         return this.getCurrentUser.favorites.some(fave => fave.id === this.postId)
-      } else return false
-    }
+        } else return false;
+      }
   },
   methods: {
-    
     handleToggleLike() {
-      if(this.postLiked) {
+      if (this.postLiked) {
         this.handleUnLikePost()
-      } else {
+        } else {
         this.handleLikePost()
-      }
-    },
+        }
+      },
     handleLikePost() {
       this.$apollo.mutate({
         mutation: LikePost,
@@ -77,7 +76,6 @@ export default {
         }
       })
       .then((data) =>{
-        console.log(data)
         this.$apollo.queries.getCurrentUser.refresh()
         this.$apollo.queries.getPost.refresh()
       })
@@ -91,28 +89,28 @@ export default {
         variables: {
           postId: this.postId,
           userId: this.getCurrentUser.id
-        }
-      })
+          }
+        })
       .then((data) =>{
         console.log(data)
         this.$apollo.queries.getCurrentUser.refresh()
         this.$apollo.queries.getPost.refresh()
-      })
+        })
       .catch(error => {
         console.log(error)
-      throw new Error('could not update post')
-    })
-    },
+        throw new Error('could not update post')
+        })
+      },
     goToPreviousPage() {
-      this.$router.go(-1)
-    },
+      this.$router.go(-1);
+      },
     toggleImageDialog() {
       if (window.innerWidth > 500) {
-        this.dialog = !this.dialog
+        this.dialog = !this.dialog;
+        }
       }
     }
-  }
-}
+};
 </script>
 <style scoped lang="stylus">
   #post__image

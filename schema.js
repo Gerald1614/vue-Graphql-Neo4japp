@@ -47,7 +47,8 @@ type Query {
   getPost(postId: ID!): Post!,
   infiniteScrollPosts(data: infiniteScrollPostsInput): PostPage,
   getUsers: [User],
-  getCurrentUser: User
+  getCurrentUser: User,
+  searchPosts(searchTerm: String!): [Post]
 }
 
 type Mutation {
@@ -123,6 +124,21 @@ input CreateUserInput {
       })
       console.log(post)
       return post
+    },
+    searchPosts: async (object, params, ctx, resolveInfo) => {
+      const searchTerm = params.searchTerm
+      if (searchTerm) {
+        var session = await ctx.driver.session()
+        const postsData = await session.run(
+        'MATCH (p:Post) ' +
+        'WHERE p.description  CONTAINS $searchTerm OR p.title CONTAINS $searchTerm ' +
+        'RETURN p as posts LIMIT 5', {'searchTerm': searchTerm}
+        )
+        const posts = postsData.records.map(function (record) {
+          return record.get("posts").properties
+          })
+        return posts;
+        }
     },
     infiniteScrollPosts: async (object, params, ctx, resolveInfo) => {
       let posts;

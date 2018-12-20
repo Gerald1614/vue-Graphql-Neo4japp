@@ -27,8 +27,21 @@
         VueShare</router-link>
       </v-toolbar-title>
       <v-spacer></v-spacer>
-      <v-text-field flex prepend-icon="search" placeholder="Search Posts" color="accent" single-line hide-details></v-text-field>
+      <v-text-field v-model="searchTerm" @input="handleSearchPosts" flex prepend-icon="search" placeholder="Search Posts" color="accent" single-line hide-details></v-text-field>
+      
+      <v-card dark v-if="searchresults" id="search__card">
+        <v-list>
+          <v-list-tile v-for="result in searchresults" :key="result.id" @click="goToPost(result.id)">
+            <v-list-tile-title >
+              {{ result.title }}
+              <span class="font-weight-thin"> {{ formatDescription(result.description) }}</span>
+            </v-list-tile-title>
+          </v-list-tile>
+        </v-list>
+      </v-card>
+
       <v-spacer></v-spacer>
+
       <v-toolbar-items  class="hidden-xs-only">
         <v-btn flat v-for="item in hbNavItems" :key="item.title" :to="item.link">
           <v-icon class="hidden-sm-only" left>{{ item.icon }}</v-icon>
@@ -64,32 +77,32 @@
 </template>
 
 <script>
-import Home from './components/Home'
-import getCurrentUser from './graphql/getCurrentUser.gql'
-import gql from 'graphql-tag'
+import getCurrentUser from "./graphql/getCurrentUser.gql"
+import searchPosts from "./graphql/searchPosts.gql"
+import gql from "graphql-tag"
 export default {
-  name: 'App',
-  data () {
+  name: "App",
+  data() {
     return {
       sideNav: false,
-      authSnackbar: false,
-      badgeAnimated: false
-    }
+      searchTerm: "",
+      searchresults:[]
+    };
   },
   apollo: {
     isLoggedIn: {
       query: gql`
-          query {
-            isLoggedIn @client
-          }`
-    },
+        query {
+          isLoggedIn @client
+        }`
+      },
     getCurrentUser: {
       query: getCurrentUser
     }
-}
+  },
   computed: {
     authSnackbar() {
-      return this.isLoggedIn
+      return this.isLoggedIn;
     },
     hbNavItems() {
       let items = [
@@ -100,31 +113,47 @@ export default {
       if (this.isLoggedIn) {
         items = [
           {icon: 'chat', title:"Posts", link: '/posts'}
-        ]
-      }
-      return items
+          ]
+        }
+      return items;
     },
     sideNavItems() {
       let items = [
         {icon: 'chat', title:"Posts", link: '/posts'},
         {icon: 'lock_open', title:"Sign In", link: '/signin'},
         {icon: 'create', title:"Sign Up", link: '/signup'},
-      ];
-      
-   
+        ];
       if (this.isLoggedIn) {
         items = [
           {icon: 'chat', title:"Posts", link: '/posts'},
           {icon: 'stars', title: 'Create Post', link: '/post/add'},
           {icon: 'account_box', title: 'Profile', link: '/profile'},
           {icon: 'exit_to_app', title:"Log Out", link: '/logout'}
-        ]
-      }
-      return items
+          ]
+        }
+      return items;
     }
   },
   methods: {
-   
+    goToPost(postId) {
+      this.searchTerm = '';
+      this.searchresults = null;
+      this.$router.push(`/posts/${postId}`);
+    },
+    formatDescription(desc) {
+      return desc.length > 20 ? `${desc.slice(0, 20)}...` : desc
+    },
+    handleSearchPosts() {
+      this.$apollo.query({
+          query: searchPosts,
+          variables: {
+            searchTerm: this.searchTerm
+          }
+        })
+       .then((result) => {
+         this.searchresults = result.data.searchPosts
+       })
+    },
     toggleSideNav() {
       this.sideNav = !this.sideNav
     }
@@ -132,10 +161,17 @@ export default {
 }
 </script>
 <style lang="stylus">
-  .fade-enter-active,
-  .fade-leave-active 
-    transition-property: all;
-    transition-duration: 0.25s;
+#search__card 
+  position: absolute;
+  width: 100vw;
+  z-index: 8;
+  top: 100%;
+  left: 0%
+
+.fade-enter-active,
+.fade-leave-active 
+  transition-property: all;
+  transition-duration: 0.25s;
 
 .fade-enter-active 
   transition-delay: 0.25s;
