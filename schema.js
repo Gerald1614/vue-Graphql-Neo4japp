@@ -96,18 +96,21 @@ input CreateUserInput {
       return  session.run(
         'MATCH (user:User {id: $nameParam }) ' +
         'OPTIONAL MATCH (user)-[:LIKES]->(favorites:Post) ' +
-        'RETURN favorites, user', {nameParam: userId})
+        'OPTIONAL MATCH (user)-[:POSTED]->(posts:Post) ' +
+        'RETURN user, collect(distinct favorites) AS favorites, collect(distinct posts) AS posts', {nameParam: userId})
       .then( (result) => {
+        session.close()
         let [user]= result.records.map(function (record) {
           return record.get("user").properties
         })
- 
-          let favorites = result.records.map(function (record) {
-            if (record.get("favorites")) {
-              return record.get("favorites").properties
-            } 
-          })
+          let favorites = result.records[0]._fields[1].map(function (record) {
+              return record.properties
+            })
+            let posts = result.records[0]._fields[2].map(function (record) {
+                return record.properties
+            })
             user.favorites = favorites
+            user.posts = posts
         return user
         })
       .catch((err) => console.log(err))
@@ -123,6 +126,7 @@ input CreateUserInput {
         return record.get("post")
       })
       console.log(post)
+      session.close()
       return post
     },
     searchPosts: async (object, params, ctx, resolveInfo) => {
@@ -137,6 +141,7 @@ input CreateUserInput {
         const posts = postsData.records.map(function (record) {
           return record.get("posts").properties
           })
+          session.close()
         return posts;
         }
     },
@@ -170,6 +175,7 @@ input CreateUserInput {
         .catch((err) => console.log(err))
         const hasMore = totalDocs > params.data.pageSize * params.data.pageNum
         return { posts, hasMore }
+        session.close()
     }
  
    },
@@ -193,6 +199,7 @@ input CreateUserInput {
           return record.get("favorites").properties
         })
         console.log({likes: post.likes, favorites})
+        session.close()
         return {likes: post.likes, favorites}
      },
      async UnLikePost(object, params, ctx, resolveInfo) {
@@ -217,6 +224,7 @@ input CreateUserInput {
         return record.get("favorites").properties
       })
       console.log({likes: post.likes, favorites: favorites})
+      session.close()
       return {likes: post.likes, favorites: favorites}
    },
      async CreatePost(object, params, ctx, resolveInfo) {
@@ -240,6 +248,7 @@ input CreateUserInput {
             {'idUser': userId,
             'params': newPost} )
         .then( async (result) => {
+          session.close()
           let [post] = await result.records.map(function (record) {
             return record.get("post")
             })
@@ -268,6 +277,7 @@ input CreateUserInput {
           'RETURN user',
             {'user': user} )
         .then( (result) => {
+          session.close()
           return {user: result.records[0]._fields[0].properties, token:token(user.id)}
           })
         .catch((err) => console.log(err))
@@ -276,6 +286,7 @@ input CreateUserInput {
       var session = await ctx.driver.session()
       return session.run('MATCH(user:User {email: $nameParam }) RETURN user as user', {nameParam: params.data.email})
       .then( async (result) => {
+        session.close()
         let [user] = await result.records.map(function (record) {
            return record.get("user").properties
            })

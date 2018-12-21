@@ -8,6 +8,17 @@ query {
     favorites{
       id
       title
+      imageUrl
+      description
+    }
+     posts{
+      id
+      title
+      imageUrl
+      description
+      categories
+      likes
+      createdAt
     }
   }
 }
