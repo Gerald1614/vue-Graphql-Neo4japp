@@ -100,17 +100,29 @@ input CreateUserInput {
         'RETURN user, collect(distinct favorites) AS favorites, collect(distinct posts) AS posts', {nameParam: userId})
       .then( (result) => {
         session.close()
-        let [user]= result.records.map(function (record) {
+        let [user]= result.records.map((record) =>{
           return record.get("user").properties
         })
-          let favorites = result.records[0]._fields[1].map(function (record) {
-              return record.properties
-            })
-            let posts = result.records[0]._fields[2].map(function (record) {
-                return record.properties
-            })
-            user.favorites = favorites
-            user.posts = posts
+        let [favorites] = result.records.map((record) => {
+          return record.get('favorites').map((fav) => {
+            return fav.properties
+          })
+        })
+        let [posts] = result.records.map((record)=> {
+           return record.get('posts').map((post) => {
+             return post.properties
+           })
+        })
+        //alternative way of retrieving results 
+      //  let favorites = result.records[0]._fields[1].map(function (record) {
+      //      return record.properties
+      //    })
+      //    let posts = result.records[0]._fields[2].map(function (record) {
+      //        return record.properties
+      //    })
+      console.log(favorites)
+          user.favorites = favorites
+          user.posts = posts
         return user
         })
       .catch((err) => console.log(err))
@@ -125,7 +137,6 @@ input CreateUserInput {
       const [post] = postData.records.map(function (record) {
         return record.get("post")
       })
-      console.log(post)
       session.close()
       return post
     },
@@ -198,7 +209,6 @@ input CreateUserInput {
         const favorites = postData.records.map(function (record) {
           return record.get("favorites").properties
         })
-        console.log({likes: post.likes, favorites})
         session.close()
         return {likes: post.likes, favorites}
      },
@@ -216,14 +226,12 @@ input CreateUserInput {
       'WITH user, post ' +
       'MATCH (favorites:Post)<-[rel1:LIKES]-(toto:User {id: $userId}) ' +
       'RETURN post {.likes}, favorites', {'postId': postId, 'userId': userId})
-      console.log(postData)
       const [post] = postData.records.map(function (record) {
         return record.get("post")
       })
       const favorites = postData.records.map(function (record) {
         return record.get("favorites").properties
       })
-      console.log({likes: post.likes, favorites: favorites})
       session.close()
       return {likes: post.likes, favorites: favorites}
    },
