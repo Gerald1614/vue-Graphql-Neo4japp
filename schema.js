@@ -57,6 +57,7 @@ type Mutation {
   LoginUser(data: loginUserInput!): AuthPayload
   LikePost(postId: ID!, userId: ID!): LikesFaves!
   UnLikePost(postId: ID!, userId: ID!): LikesFaves!
+  UpdateUserPost(postId: ID!, data: CreatePostInput!): Post!
 }
 type AuthPayload {
   token: String!
@@ -191,6 +192,29 @@ input CreateUserInput {
  
    },
    Mutation: {
+     async UpdateUserPost(object, params, ctx, resolveInfo) {
+      const userId = await getUserId(ctx.req)
+      const postId = params.postId
+      const updatedPost = params.data
+      var session = await ctx.driver.session()
+      return session.run(
+        'MATCH (user:User {id: $idUser}) ' +
+        'MATCH (post:Post {id: $idPost}) ' +
+        'SET post += {title: $params.title, description: $params.description, categories: $params.categories, imageUrl: $params.imageUrl}' +
+        'RETURN post {.title, .description, .id, .imageUrl, .categories, .createdAt, .likes, ' +
+        'author: user {.userName, .id, .email, .avatar} }',
+          {'idUser': userId,
+          'idPost': postId,
+          'params': updatedPost} )
+      .then( async (result) => {
+        session.close()
+        let [post] = await result.records.map(function (record) {
+          return record.get("post")
+          })
+          return post
+        })
+      .catch((err) => console.log(err))
+     },
      async LikePost(object, params, ctx, resolveInfo) {
         const postId = params.postId
         const userId = params.userId

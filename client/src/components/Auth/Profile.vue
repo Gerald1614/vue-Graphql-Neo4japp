@@ -52,7 +52,7 @@
     </v-layout>
   </v-container>
 
-  <v-container class="mt-3" v-esle>
+  <v-container class="mt-3" v-else>
     <v-flex xs12>
       <h2 class="font-weight-light"> Your Posts
         <span class="font weight-regular"> {{ getCurrentUser.posts.length}}</span>
@@ -61,7 +61,7 @@
     <v-layout row wrap>
       <v-flex xs2 sm6 v-for="post in getCurrentUser.posts" :key="post.id">
         <v-card class="mt-3 ml-1 mr-2" hover>
-          <v-btn color="info" floating fab small dark>
+          <v-btn color="info" @click="loadPost(post)" floating fab small dark>
             <v-icon>edit</v-icon>
           </v-btn>
           <v-btn color="error" floating fab small dark>
@@ -73,16 +73,117 @@
       </v-flex>
     </v-layout>
   </v-container>
+  <v-dialog xs12 offset-sm3 persistent v-model="editPostDialog">
+    <v-card>
+      <v-container>
+        <v-card-title class="headline grey ligthen-2">Update Post</v-card-title>
+        <v-form v-model="isFormValid" lazy-validation ref="form" @submit.prevent="handleUpdatePost">
+          <v-layout row>
+            <v-flex xs12>
+              <v-text-field :rules="titleRules" v-model="title" label="Post title" type="text" required></v-text-field>
+            </v-flex>
+          </v-layout>
+          <v-layout row>
+            <v-flex xs12>
+              <v-text-field :rules="imageUrlRules" v-model="imageUrl" label="image Url" type="imageUrl" required></v-text-field>
+            </v-flex>
+          </v-layout>
+          <v-layout row>
+            <v-flex xs12>
+              <img :src="imageUrl" height="300px" alt="">
+            </v-flex>
+          </v-layout>
+            <v-layout row>
+            <v-flex xs12>
+              <v-select :rules="categoriesRules" v-model="categories" :items="['Art', 'Education', 'Travel', 'Photography', 'Technology']" multiple label="Categories" >
+
+              </v-select>
+            </v-flex>
+          </v-layout>
+          <v-layout row>
+            <v-flex xs12>
+              <v-textarea :rules="descRules" v-model="description" label="Post Description" type="text" required></v-textarea>
+            </v-flex>
+          </v-layout>
+          <v-divider></v-divider>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn :disabled="!isFormValid" type="submit" class="success--text" flat>Update</v-btn>
+            <v-btn class="error--text" flat @click="editPostDialog = false">Cancel</v-btn>
+          </v-card-actions>
+        </v-form>
+      </v-container>
+      </v-card>
+  </v-dialog>
   </v-container>
 </template>
 
 <script>
 import getCurrentUser from "../../graphql/getCurrentUser.gql"
+import updateUserPost from '../../graphql/updateUserPost.gql'
   export default {
     name: 'Profile',
+    data() {
+      return {
+        editPostDialog: false,
+        title:"",
+      imageUrl: "",
+      categories: [],
+      description:"",
+      error: "",
+      loading: false,
+      isFormValid: true,
+      titleRules: [
+        title => !!title || "title is required",
+        title => title.length >6 || "title must be more than 6 characters"
+      ],
+      imageUrlRules: [
+         imageUrl => !!imageUrl || "imageUrl is required"
+      ],
+       categoriesRules: [
+         categories => !! categories.length >=1 || " select at least one category"
+      ],
+       descRules: [
+        desc => !!desc || "desc is required"
+      ]
+      }
+    },
     apollo: {
     getCurrentUser: {
       query: getCurrentUser
+    }
+  },
+  methods: {
+    loadPost({id, title, imageUrl, categories, description}, editPostDialog = true) {
+      this.editPostDialog = editPostDialog;
+      this.postId = id;
+      this.title = title;
+      this.description = description;
+      this.categories = categories;
+      this.imageUrl = imageUrl;
+    },
+    async handleUpdatePost() {
+      if(!this.$refs.form.validate()) {
+        return
+      }
+        await this.$apollo.mutate({
+          mutation: updateUserPost,
+          variables: {
+            postId: this.postId,
+            title: this.title,
+            description: this.description,
+            imageUrl: this.imageUrl,
+            categories: this.categories
+          }
+        })
+       .then((result) => {
+         console.log(result)
+         this.editPostDialog = false
+  //        this.$router.push('/')
+        })
+        .catch(error => {
+        throw new Error('we could not add the post')  
+        })
     }
   }
   }

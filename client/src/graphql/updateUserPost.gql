@@ -1,0 +1,22 @@
+mutation($postId: ID!, $title: String!, $description: String!, $imageUrl: String!, $categories:[String]! ) {
+  UpdateUserPost (postId: $postId, data: {
+    title: $title,
+ 	 	description: $description,
+  	imageUrl: $imageUrl,
+  	categories: $categories
+  })  {
+	  id
+    title
+    description
+    categories
+    imageUrl
+    likes
+    createdAt
+    author {
+      id
+      userName
+      email
+      avatar
+    }
+  }
+}
