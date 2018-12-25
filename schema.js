@@ -58,6 +58,7 @@ type Mutation {
   LikePost(postId: ID!, userId: ID!): LikesFaves!
   UnLikePost(postId: ID!, userId: ID!): LikesFaves!
   UpdateUserPost(postId: ID!, data: CreatePostInput!): Post!
+  DeleteUserPost(postId: ID!): Post!
 }
 type AuthPayload {
   token: String!
@@ -192,6 +193,28 @@ input CreateUserInput {
  
    },
    Mutation: {
+     async DeleteUserPost(object, params, ctx, resolveInfo) {
+      const postId = params.postId
+      const userId = await getUserId(ctx.req)
+      var session = await ctx.driver.session()
+      return session.run(
+      'MATCH (post:Post {id: $idPost, author: $idUser}) ' +
+      'WITH properties(post) as deletedPost, post ' +
+      'DETACH DELETE post ' +
+      'RETURN deletedPost',
+        {'idUser': userId,
+        'idPost': postId}
+     )
+     .then( async (result) => {
+      session.close()
+      let [post] = await result.records.map(function (record) {
+        console.log(record)
+        return record.get("deletedPost")
+        })
+        return post
+      })
+    .catch((err) => console.log(err))
+    },
      async UpdateUserPost(object, params, ctx, resolveInfo) {
       const userId = await getUserId(ctx.req)
       const postId = params.postId

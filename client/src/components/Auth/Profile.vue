@@ -36,7 +36,7 @@
     <v-layout row wrap>
       <v-flex xs2 sm6 v-for="favorite in getCurrentUser.favorites" :key="favorite.id">
         <v-card class="mt3 ml-1 mr-2" hover>
-          <v-card-media height="30vh" :src="favorite.imageUrl"></v-card-media>
+          <v-card-media @click.native="goToPost(favorite.id)" height="30vh" :src="favorite.imageUrl"></v-card-media>
           <v-card-text>{{ favorite.title }}</v-card-text>
         </v-card>
 
@@ -64,10 +64,10 @@
           <v-btn color="info" @click="loadPost(post)" floating fab small dark>
             <v-icon>edit</v-icon>
           </v-btn>
-          <v-btn color="error" floating fab small dark>
+          <v-btn @click="handleDeleteUserPost(post.id)" color="error" floating fab small dark>
             <v-icon>delete</v-icon>
           </v-btn>
-          <v-card-media height="30vh" :src="post.imageUrl"></v-card-media>
+          <v-card-media @click.native="goToPost(post.id)" height="30vh" :src="post.imageUrl"></v-card-media>
           <v-card-text>{{ post.title }}</v-card-text>
         </v-card>
       </v-flex>
@@ -121,6 +121,7 @@
 <script>
 import getCurrentUser from "../../graphql/getCurrentUser.gql"
 import updateUserPost from '../../graphql/updateUserPost.gql'
+import deleteUserPost from '../../graphql/deleteUserPost.gql'
   export default {
     name: 'Profile',
     data() {
@@ -154,6 +155,27 @@ import updateUserPost from '../../graphql/updateUserPost.gql'
     }
   },
   methods: {
+    goToPost(postId) {
+      this.$router.push(`/posts/${postId}`);
+    },
+    async handleDeleteUserPost(postId) {
+      const deletePost = window.confirm('Are you sure you want to delete this post?');
+      if(deletePost) {
+        await this.$apollo.mutate({
+          mutation: deleteUserPost,
+          variables: {
+            postId: postId
+          },
+          refetchQueries: [{ query: getCurrentUser }]
+        })
+        .then((result) => {
+         console.log(result)
+        })
+        .catch(error => {
+        throw new Error('we could not delete the post')  
+        })
+      }
+    },
     loadPost({id, title, imageUrl, categories, description}, editPostDialog = true) {
       this.editPostDialog = editPostDialog;
       this.postId = id;
@@ -179,10 +201,9 @@ import updateUserPost from '../../graphql/updateUserPost.gql'
        .then((result) => {
          console.log(result)
          this.editPostDialog = false
-  //        this.$router.push('/')
         })
         .catch(error => {
-        throw new Error('we could not add the post')  
+        throw new Error('we could not update the post')  
         })
     }
   }
